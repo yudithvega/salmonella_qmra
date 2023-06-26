@@ -1,0 +1,142 @@
+library(MASS)
+
+#Data C
+#Metro
+c_airtanah_mt = read.delim("clipboard")
+lnorm.fit.c.airtanah.mt = fitdistr(c_airtanah_mt$Air.Tanah.Mt,"lognormal")
+meanlog.c.airtanah.mt = lnorm.fit.c.airtanah.mt$estimate["meanlog"]
+sdlog.c.airtanah.mt = lnorm.fit.c.airtanah.mt$estimate["sdlog"]
+
+c_isiulang_mt = read.delim("clipboard")
+lnorm.fit.c.isiulang.mt = fitdistr(c_isiulang_mt$Air.Isi.Ulang.Mt,"lognormal")
+meanlog.c.isiulang.mt = lnorm.fit.c.isiulang.mt$estimate["meanlog"]
+sdlog.c.isiulang.mt = lnorm.fit.c.isiulang.mt$estimate["sdlog"]
+
+#Bekasi
+c_airtanah_bk = read.delim("clipboard")
+lnorm.fit.c.airtanah.bk = fitdistr(c_airtanah_bk$Air.Tanah.Bk,"lognormal")
+meanlog.c.airtanah.bk = lnorm.fit.c.airtanah.bk$estimate["meanlog"]
+sdlog.c.airtanah.bk = lnorm.fit.c.airtanah.bk$estimate["sdlog"]
+
+lnorm.fit.c.isiulang.bk = fitdistr(c_isiulang_bk$Air.Isi.Ulang.Bk,"lognormal")
+meanlog.c.isiulang.bk = lnorm.fit.c.isiulang.bk$estimate["meanlog"]
+sdlog.c.isiulang.bk = lnorm.fit.c.isiulang.bk$estimate["sdlog"]
+
+
+#Generate 10000 Random Data from Data C using LogNormal Distribution
+#Metro
+rand_c_lnorm_airtanah_mt = rnorm(10000, meanlog.c.airtanah.mt, sdlog.c.airtanah.mt)
+rand_c_lnorm_isiulang_mt = rnorm(10000, meanlog.c.isiulang.mt, sdlog.c.isiulang.mt)
+
+#Bekasi
+rand_c_lnorm_airtanah_bk = rnorm(10000, meanlog.c.airtanah.bk, sdlog.c.airtanah.bk)
+rand_c_lnorm_isiulang_bk = rnorm(10000, meanlog.c.isiulang.bk, sdlog.c.isiulang.bk)
+
+
+#Generate 10000 Random data from Rasio Salmonella using LogNormal Distribution
+mean_salmonella = 0.030251987392348
+sd_salmonella = 0.0513549780127531
+meanlog.salmonella  = log(mean_salmonella) - ((1/2)*log((sd_salmonella/mean_salmonella)^2+1))
+sdlog.salmonella = sqrt(log((sd_salmonella/mean_salmonella)^2+1))
+rand_salmonella = rlnorm(10000, meanlog.salmonella, sdlog.salmonella)
+
+
+#Generate 10000 Random Data from Konsumsi Air Minum using LogNormal Distribution
+mean_airminum = 2330
+sd_airminum = 1220
+meanlog.airminum <- log(mean_airminum) - ((1/2)*log((sd_airminum/mean_airminum)^2+1))
+sdlog.airminum = sqrt(log((sd_airminum/mean_airminum)^2+1))
+rand_airminum = rlnorm(10000, meanlog.airminum, sdlog.airminum)
+
+
+#Hitung Exposure
+#Metro
+exposure_airtanah_mt = abs(rand_c_lnorm_airtanah_mt*rand_salmonella*rand_airminum)
+exposure_isiulang_mt = abs(rand_c_lnorm_isiulang_mt*rand_salmonella*rand_airminum)
+
+#Bekasi
+exposure_airtanah_bk = abs(rand_c_lnorm_airtanah_bk*rand_salmonella*rand_airminum)
+exposure_isiulang_bk = abs(rand_c_lnorm_isiulang_bk*rand_salmonella*rand_airminum)
+
+
+#Hitung Nilai DB
+#Nilai Kemungkinan Infeksi Harian
+a = 0.3126
+N50 = 23600
+#Metro
+f_airtanah_mt = 1-(1+(exposure_airtanah_mt/N50)*((2^1/a)-1))^(-a)
+f_isiulang_mt = 1-(1+(exposure_isiulang_mt/N50)*((2^1/a)-1))^(-a)
+pinf_airtanah_mt = 1-(1-f_airtanah_mt)^365
+pinf_isiulang_mt = 1-(1-f_isiulang_mt)^365
+
+#Bekasi
+f_airtanah_bk = 1-(1+(exposure_airtanah_bk/N50)*((2^1/a)-1))^(-a)
+f_isiulang_bk = 1-(1+(exposure_isiulang_bk/N50)*((2^1/a)-1))^(-a)
+pinf_airtanah_bk = 1-(1-f_airtanah_bk)^365
+pinf_isiulang_bk = 1-(1-f_isiulang_bk)^365
+
+#Kemungkinan terjadi penyakit akibat infeksi
+Pillinf = 0.2
+#Metro
+Pill_airtanah_mt = pinf_airtanah_mt*Pillinf
+Pill_isiulang_mt = pinf_isiulang_mt*Pillinf
+Pill_airtanah_bk = pinf_airtanah_bk*Pillinf
+Pill_isiulang_bk = pinf_isiulang_bk*Pillinf
+
+#Beban Penyakit Tahunan
+db = 0.53
+fs = 1
+#Metro
+DB_calc_airtanah_mt = Pill_airtanah_mt*db*fs
+DB_calc_isiulang_mt = Pill_isiulang_mt*db*fs
+
+#Bekasi
+DB_calc_airtanah_bk = Pill_airtanah_bk*db*fs
+DB_calc_isiulang_bk = Pill_isiulang_bk*db*fs
+
+
+#Mean, Median, Standar Deviation DB
+#Metro
+Mean(DB_calc_airtanah_mt)
+[1] 0.06188005
+median(DB_calc_airtanah_mt)
+[1] 0.06571137
+sd(DB_calc_airtanah_mt)
+[1] 0.03612274
+
+mean(DB_calc_isiulang_mt)
+[1] 0.05956821
+median(DB_calc_isiulang_mt)
+[1] 0.06040111
+sd(DB_calc_isiulang_mt)
+[1] 0.03595569
+
+#Bekasi
+mean(DB_calc_airtanah_bk)
+[1] 0.05649105
+median(DB_calc_airtanah_bk)
+[1] 0.05507204
+sd(DB_calc_airtanah_bk)
+[1] 0.03590731
+
+mean(DB_calc_isiulang_bk)
+[1] 0.0513639
+median(DB_calc_isiulang_bk)
+[1] 0.04675122
+sd(DB_calc_isiulang_bk)
+[1] 0.03564263
+
+#Making Plot Cumulative Probability
+cdf_DB_airtanah_mt = ecdf(DB_calc_airtanah_mt)
+cdf_DB_isiulang_mt = ecdf(DB_calc_isiulang_mt)
+cdf_DB_airtanah_bk = ecdf(DB_calc_airtanah_bk)
+cdf_DB_isiulang_bk = ecdf(DB_calc_isiulang_bk)
+
+
+plot(cdf_DB_airtanah_mt, col = "YELLOW")
+par(new = TRUE)
+plot(cdf_DB_isiulang_mt, col = "GREEN")
+par(new = TRUE)
+plot(cdf_DB_airtanah_bk, col = "RED")
+par(new = TRUE)
+plot(cdf_DB_isiulang_bk, col = "BLUE")
